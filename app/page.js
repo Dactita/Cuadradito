@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 
-const SIZE = 40;
+const SIZE = 100;
 const TOTAL = SIZE * SIZE;
 const PRICE = Number(process.env.NEXT_PUBLIC_PRICE_PER_CELL || 500);
 
