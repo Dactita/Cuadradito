@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '../../../lib/supabaseAdmin';
 
-const SIZE = 40;
+const SIZE = 100;
 const TOTAL = SIZE * SIZE;
 const PRICE = Number(process.env.NEXT_PUBLIC_PRICE_PER_CELL || 500);
 
