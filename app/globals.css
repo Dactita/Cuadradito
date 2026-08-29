@@ -97,7 +97,7 @@ main{
 }
 #board{
   display:grid;
-  grid-template-columns: repeat(40, 1fr);
+  grid-template-columns: repeat(100, 1fr);
   width:min(88vw, 620px);
   aspect-ratio:1;
   gap:1px;
