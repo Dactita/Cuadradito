@@ -1,10 +1,14 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 3;
+const ZOOM_STEP = 0.08;
 
 const SIZE = 100;
 const TOTAL = SIZE * SIZE;
-const PRICE = Number(process.env.NEXT_PUBLIC_PRICE_PER_CELL || 100);
+const PRICE = Number(process.env.NEXT_PUBLIC_PRICE_PER_CELL || 500);
 
 function colToLabel(col) {
   let s = '';
@@ -32,6 +36,24 @@ export default function Home() {
   const [paying, setPaying] = useState(false);
   const [toast, setToast] = useState('');
   const [statusBanner, setStatusBanner] = useState(null);
+  const [zoom, setZoom] = useState(1);
+  const boardFrameRef = useRef(null);
+
+  useEffect(() => {
+    const el = boardFrameRef.current;
+    if (!el) return;
+
+    function handleWheel(e) {
+      e.preventDefault();
+      setZoom((z) => {
+        const next = e.deltaY < 0 ? z + ZOOM_STEP : z - ZOOM_STEP;
+        return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, next));
+      });
+    }
+
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheel);
+  }, []);
 
   const loadBoard = useCallback(async () => {
     try {
@@ -141,8 +163,11 @@ export default function Home() {
       <main>
         {statusBanner && <div className="status-banner">{statusBanner}</div>}
 
-        <div className={`board-frame ${loading ? 'loading' : ''}`}>
-          <div id="board">
+        <div className={`board-frame ${loading ? 'loading' : ''}`} ref={boardFrameRef}>
+          <div
+            id="board"
+            style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }}
+          >
             {board.map((state, i) => (
               <div
                 key={i}
