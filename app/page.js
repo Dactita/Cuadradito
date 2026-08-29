@@ -37,22 +37,86 @@ export default function Home() {
   const [toast, setToast] = useState('');
   const [statusBanner, setStatusBanner] = useState(null);
   const [zoom, setZoom] = useState(1);
+  const [origin, setOrigin] = useState({ x: '50%', y: '50%' });
+  const zoomRef = useRef(1);
+  const boardRef = useRef(null);
   const boardFrameRef = useRef(null);
+  const pinchRef = useRef({ distance: null, startZoom: 1 });
+
+  useEffect(() => {
+    zoomRef.current = zoom;
+  }, [zoom]);
 
   useEffect(() => {
     const el = boardFrameRef.current;
     if (!el) return;
 
+    function setOriginFromPoint(clientX, clientY) {
+      const rect = boardRef.current.getBoundingClientRect();
+      const x = ((clientX - rect.left) / rect.width) * 100;
+      const y = ((clientY - rect.top) / rect.height) * 100;
+      setOrigin({
+        x: `${Math.min(100, Math.max(0, x))}%`,
+        y: `${Math.min(100, Math.max(0, y))}%`,
+      });
+    }
+
     function handleWheel(e) {
       e.preventDefault();
+      setOriginFromPoint(e.clientX, e.clientY);
       setZoom((z) => {
         const next = e.deltaY < 0 ? z + ZOOM_STEP : z - ZOOM_STEP;
         return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, next));
       });
     }
 
+    function getDistance(touches) {
+      const dx = touches[0].clientX - touches[1].clientX;
+      const dy = touches[0].clientY - touches[1].clientY;
+      return Math.hypot(dx, dy);
+    }
+    function getMidpoint(touches) {
+      return {
+        x: (touches[0].clientX + touches[1].clientX) / 2,
+        y: (touches[0].clientY + touches[1].clientY) / 2,
+      };
+    }
+
+    function handleTouchStart(e) {
+      if (e.touches.length === 2) {
+        pinchRef.current.distance = getDistance(e.touches);
+        pinchRef.current.startZoom = zoomRef.current;
+        const mid = getMidpoint(e.touches);
+        setOriginFromPoint(mid.x, mid.y);
+      }
+    }
+
+    function handleTouchMove(e) {
+      if (e.touches.length === 2 && pinchRef.current.distance) {
+        e.preventDefault();
+        const newDistance = getDistance(e.touches);
+        const scaleFactor = newDistance / pinchRef.current.distance;
+        const next = pinchRef.current.startZoom * scaleFactor;
+        setZoom(Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, next)));
+      }
+    }
+
+    function handleTouchEnd(e) {
+      if (e.touches.length < 2) {
+        pinchRef.current.distance = null;
+      }
+    }
+
     el.addEventListener('wheel', handleWheel, { passive: false });
-    return () => el.removeEventListener('wheel', handleWheel);
+    el.addEventListener('touchstart', handleTouchStart, { passive: true });
+    el.addEventListener('touchmove', handleTouchMove, { passive: false });
+    el.addEventListener('touchend', handleTouchEnd);
+    return () => {
+      el.removeEventListener('wheel', handleWheel);
+      el.removeEventListener('touchstart', handleTouchStart);
+      el.removeEventListener('touchmove', handleTouchMove);
+      el.removeEventListener('touchend', handleTouchEnd);
+    };
   }, []);
 
   const loadBoard = useCallback(async () => {
@@ -166,7 +230,8 @@ export default function Home() {
         <div className={`board-frame ${loading ? 'loading' : ''}`} ref={boardFrameRef}>
           <div
             id="board"
-            style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }}
+            ref={boardRef}
+            style={{ transform: `scale(${zoom})`, transformOrigin: `${origin.x} ${origin.y}` }}
           >
             {board.map((state, i) => (
               <div
