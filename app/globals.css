@@ -94,6 +94,7 @@ main{
   padding:10px;
   border-radius:2px;
   box-shadow: 0 30px 60px -30px rgba(0,0,0,0.6);
+  overflow:hidden;
 }
 #board{
   display:grid;
@@ -102,6 +103,7 @@ main{
   aspect-ratio:1;
   gap:1px;
   background:var(--grid-line);
+  transition: transform 0.06s ease-out;
 }
 .cell{
   background:var(--panel);
